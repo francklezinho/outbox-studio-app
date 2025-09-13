@@ -1,0 +1,24 @@
+workflows:
+  ios-workflow:
+    name: iOS Build with IPA
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Get Flutter dependencies
+        script: flutter pub get
+      - name: Build iOS without codesigning
+        script: flutter build ios --release --no-codesign
+      - name: Create IPA file
+        script: |
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -r ../../../outbox-studio.ipa Payload/
+    artifacts:
+      - outbox-studio.ipa
+    publishing:
+      email:
+        recipients:
+          - franckle@hotmail.com
