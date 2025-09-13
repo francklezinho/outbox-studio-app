@@ -58,7 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _saveCredentials(String email, String password) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       if (_rememberPassword) {
         await prefs.setString('remembered_email', email);
         await prefs.setString('remembered_password', password);
@@ -76,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
+
     if (email.isEmpty || password.isEmpty) {
       _showMessage('Please fill in all fields', Colors.orange);
       return;
@@ -84,29 +84,31 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ✅ SOLUÇÃO ALTERNATIVA: Usar um método que não depende de AuthProvider tipado
-      // Implementar login usando Supabase diretamente ou serviço customizado
+      // ✅ CORREÇÃO PRINCIPAL: Usar AuthProvider real
+      final authProvider = context.read<AppAuthProvider>();
+      final success = await authProvider.signIn(email, password);
 
-      // Simular login para demonstração (substitua pelo seu método real)
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Simulação de sucesso (substitua pela sua lógica real de autenticação)
-      final loginSuccess = email.isNotEmpty && password.isNotEmpty;
-
-      if (loginSuccess) {
+      if (success) {
         // ✅ ADICIONADO: Salvar credenciais se checkbox marcado
         await _saveCredentials(email, password);
-
         _showMessage('Welcome back!', Colors.green);
-        Navigator.pushReplacementNamed(context, '/home');
+
+        // ✅ AGUARDAR UM POUCO PARA O PROVIDER ATUALIZAR
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } else {
-        _showMessage('Invalid email or password', Colors.red);
+        _showMessage(authProvider.error ?? 'Invalid email or password', Colors.red);
       }
     } catch (e) {
       _showMessage('Login error. Please try again.', Colors.red);
       print('Login error: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -122,7 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _gradientSignInButton() {
     const brand = Color(0xFFFBAF2A);
-
     return SizedBox(
       width: double.infinity,
       height: 50,
