@@ -1,24 +1,35 @@
 workflows:
-  ios-workflow:
-    name: iOS Build with IPA
-    max_build_duration: 60
+  android-ios-build:
+    name: Android and iOS Build
+    max_build_duration: 90
     environment:
       flutter: stable
       xcode: latest
+      java: 11
     scripts:
       - name: Get Flutter dependencies
         script: flutter pub get
+      - name: Clean previous builds
+        script: flutter clean && flutter pub get
+      - name: Build Android APK
+        script: flutter build apk --release
       - name: Build iOS without codesigning
         script: flutter build ios --release --no-codesign
       - name: Create IPA file
         script: |
           cd build/ios/iphoneos
-          mkdir Payload
+          mkdir -p Payload
           cp -r Runner.app Payload/
           zip -r ../../../outbox-studio.ipa Payload/
+          echo "IPA created successfully!"
     artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
       - outbox-studio.ipa
+      - build/ios/iphoneos/Runner.app
     publishing:
       email:
         recipients:
           - franckle@hotmail.com
+        notify:
+          success: true
+          failure: true
